@@ -16,20 +16,24 @@ namespace Log4Mongo.Tests
 	[TestFixture]
 	public class MongoDBAppenderTest
 	{
-		private MongoCollection _collection;
+        MongoCollection Collection
+        {
+            get
+            {
+                MongoUrl url = MongoUrl.Create("mongodb://localhost");
+                MongoServerSettings settings = MongoServerSettings.FromUrl(url);
+                var conn = new MongoServer(settings);
+                MongoDatabase db = conn.GetDatabase("log4net");
+                return db.GetCollection("logs"); 
+            }
+        }
 
 		[SetUp]
 		public void SetUp()
 		{
 			GlobalContext.Properties.Clear();
 			ThreadContext.Properties.Clear();
-
-            MongoUrl url = MongoUrl.Create("mongodb://localhost");
-            MongoServerSettings settings = MongoServerSettings.FromUrl(url);
-            var conn = new MongoServer(settings);
-			MongoDatabase db = conn.GetDatabase("log4net");
-			_collection = db.GetCollection("logs");
-			_collection.RemoveAll();
+            Collection.RemoveAll();
 		}
 
 		private ILog GetConfiguredLog()
@@ -38,6 +42,7 @@ namespace Log4Mongo.Tests
 <log4net>
 	<appender name='MongoDBAppender' type='Log4Mongo.MongoDBAppender, Log4Mongo'>
 		<connectionString value='mongodb://localhost' />
+        <shardKey value='_id' />
 		<field>
 			<name value='timestamp' />
 			<layout type='log4net.Layout.RawTimeStampLayout' />
@@ -95,7 +100,7 @@ namespace Log4Mongo.Tests
 
 			target.Info("a log");
 
-			var doc = _collection.FindOneAs<BsonDocument>();
+			var doc = Collection.FindOneAs<BsonDocument>();
 			doc.GetElement("timestamp").Value.Should().Be.OfType<BsonDateTime>();
 			AssertTimestampLogged(doc);
 		}
@@ -107,7 +112,7 @@ namespace Log4Mongo.Tests
 
 			target.Info("a log");
 
-			var doc = _collection.FindOneAs<BsonDocument>();
+			var doc = Collection.FindOneAs<BsonDocument>();
 			doc.GetElement("level").Value.Should().Be.OfType<BsonString>();
 			doc.GetElement("level").Value.AsString.Should().Be.EqualTo("INFO");
 		}
@@ -119,7 +124,7 @@ namespace Log4Mongo.Tests
 
 			target.Info("a log");
 
-			var doc = _collection.FindOneAs<BsonDocument>();
+			var doc = Collection.FindOneAs<BsonDocument>();
 			doc.GetElement("thread").Value.Should().Be.OfType<BsonString>();
 			doc.GetElement("thread").Value.AsString.Should().Be.EqualTo(Thread.CurrentThread.Name);
 		}
@@ -138,7 +143,7 @@ namespace Log4Mongo.Tests
 				target.Fatal("a log", e);
 			}
 
-			var doc = _collection.FindOneAs<BsonDocument>();
+			var doc = Collection.FindOneAs<BsonDocument>();
 			doc.GetElement("exception").Value.Should().Be.OfType<BsonString>();
 			doc.GetElement("exception").Value.AsString.Should().Contain("ApplicationException: BOOM");
 		}
@@ -152,7 +157,7 @@ namespace Log4Mongo.Tests
 
 			target.Info("a log");
 
-			var doc = _collection.FindOneAs<BsonDocument>();
+			var doc = Collection.FindOneAs<BsonDocument>();
 			doc.GetElement("threadContextProperty").Value.AsString.Should().Be.EqualTo("value");
 		}
 
@@ -165,7 +170,7 @@ namespace Log4Mongo.Tests
 
 			target.Info("a log");
 
-			var doc = _collection.FindOneAs<BsonDocument>();
+			var doc = Collection.FindOneAs<BsonDocument>();
 			doc.GetElement("globalContextProperty").Value.AsString.Should().Be.EqualTo("value");
 		}
 
@@ -179,7 +184,7 @@ namespace Log4Mongo.Tests
 
 			target.Info("a log");
 	
-			var doc = _collection.FindOneAs<BsonDocument>();
+			var doc = Collection.FindOneAs<BsonDocument>();
 			doc.GetElement("numberProperty").Value.Should().Be.OfType<BsonInt32>();
 			doc.GetElement("dateProperty").Value.Should().Be.OfType<BsonDateTime>();
 		}
@@ -191,6 +196,7 @@ namespace Log4Mongo.Tests
 <log4net>
 	<appender name='MongoDBAppender' type='Log4Mongo.MongoDBAppender, Log4Mongo'>
 		<connectionString value='mongodb://localhost' />
+        <shardKey value='_id' />
 	</appender>
 	<root>
 		<level value='ALL' />
@@ -212,7 +218,7 @@ namespace Log4Mongo.Tests
 				target.Fatal("a log", e);
 			}
 
-			var doc = _collection.FindOneAs<BsonDocument>();
+			var doc = Collection.FindOneAs<BsonDocument>();
 
 			AssertTimestampLogged(doc); 
 			doc.GetElement("level").Value.AsString.Should().Be.EqualTo("FATAL");
@@ -242,11 +248,12 @@ namespace Log4Mongo.Tests
 			XmlConfigurator.Configure(new MemoryStream(Encoding.UTF8.GetBytes(@"
 <log4net>
 	<appender name='BufferingForwardingAppender' type='log4net.Appender.BufferingForwardingAppender' >
-		<bufferSize value='5'/>
+        <bufferSize value='5'/>
 		<appender-ref ref='MongoDBAppender' />
 	</appender>
 	<appender name='MongoDBAppender' type='Log4Mongo.MongoDBAppender, Log4Mongo'>
 		<connectionString value='mongodb://localhost' />
+        <shardKey value='_id' />
 	</appender>
 	<root>
 		<level value='ALL' />
@@ -262,11 +269,11 @@ namespace Log4Mongo.Tests
 			target.Info(4);
 			target.Info(5);
 
-			_collection.Count().Should().Be.EqualTo(0);
+			Collection.Count().Should().Be.EqualTo(0);
 
 			target.Info(6);
 
-			_collection.FindAllAs<BsonDocument>().Select(x => x.GetElement("message").Value.AsString).Should().Have.SameSequenceAs(new[] { "1", "2", "3", "4", "5", "6" });
+			Collection.FindAllAs<BsonDocument>().Select(x => x.GetElement("message").Value.AsString).Should().Have.SameSequenceAs(new[] { "1", "2", "3", "4", "5", "6" });
 
 		}
 
