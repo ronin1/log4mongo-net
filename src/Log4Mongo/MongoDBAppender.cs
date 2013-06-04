@@ -3,6 +3,7 @@ using System.Configuration;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+
 using MongoDB.Bson;
 using MongoDB.Driver;
 using log4net.Appender;
@@ -27,6 +28,12 @@ namespace Log4Mongo
 		/// Defaults to "logs"
 		/// </summary>
 		public string CollectionName { get; set; }
+
+        ///// <summary>
+        ///// If set, will enable sharding on database and shard the collection base on this shard key
+        ///// </summary>
+        ///// <remarks>If cluster is not sharded and option is set, appender will throw!</remarks>
+        //public string ShardKey { get; set; }
 
 		public void AddField(MongoAppenderFileld fileld)
 		{
@@ -54,16 +61,16 @@ namespace Log4Mongo
 			return collection;
 		}
 
+        const string DEFAULT_DB = "log4net";
+        const string DEFAULT_CONNECTION = "mongodb://localhost/";
 		private MongoDatabase GetDatabase()
 		{
-			if(string.IsNullOrWhiteSpace(ConnectionString))
-                throw new ConfigurationErrorsException("MongoDbAppender.ConnectionString is required!");
-			
-			MongoUrl url = MongoUrl.Create(ConnectionString);
+            Uri u = new Uri(string.IsNullOrWhiteSpace(ConnectionString) ? DEFAULT_CONNECTION + DEFAULT_DB : ConnectionString);
+			MongoUrl url = MongoUrl.Create(u.ToString());
             MongoServerSettings settings = MongoServerSettings.FromUrl(url);
             var conn = new MongoServer(settings);
 
-            string dbname = string.IsNullOrWhiteSpace(url.DatabaseName) ? "log4net" : url.DatabaseName;
+            string dbname = string.IsNullOrWhiteSpace(url.DatabaseName) ? DEFAULT_DB : url.DatabaseName;
             MongoDatabase db = conn.GetDatabase(dbname);
 			return db;
 		}

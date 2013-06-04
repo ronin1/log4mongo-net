@@ -237,31 +237,6 @@ namespace Log4Mongo.Tests
 		}
 
 		[Test]
-		public void Should_use_legacy_connection_configuration_when_no_connectionstring_defined()
-		{
-			XmlConfigurator.Configure(new MemoryStream(Encoding.UTF8.GetBytes(@"
-<log4net>
-	<appender name='MongoDBAppender' type='Log4Mongo.MongoDBAppender, Log4Mongo'>
-		<host value='localhost' />
-		<port value='27017' />
-		<databaseName value='log4net' />
-		<collectionName value='logs' />
-	</appender>
-	<root>
-		<level value='ALL' />
-		<appender-ref ref='MongoDBAppender' />
-	</root>
-</log4net>
-")));
-			var target = LogManager.GetLogger("Test");
-
-			target.Info("a log");
-
-			var doc = _collection.FindOneAs<BsonDocument>();
-			doc.GetElement("message").Value.AsString.Should().Be.EqualTo("a log");
-		}
-
-		[Test]
 		public void Should_log_in_batch()
 		{
 			XmlConfigurator.Configure(new MemoryStream(Encoding.UTF8.GetBytes(@"
