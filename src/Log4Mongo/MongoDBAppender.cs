@@ -2,6 +2,7 @@
 using System.Configuration;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using System.Linq;
 
 using MongoDB.Bson;
@@ -29,13 +30,7 @@ namespace Log4Mongo
 		/// </summary>
 		public string CollectionName { get; set; }
 
-        ///// <summary>
-        ///// If set, will enable sharding on database and shard the collection base on this shard key
-        ///// </summary>
-        ///// <remarks>If cluster is not sharded and option is set, appender will throw!</remarks>
-        //public string ShardKey { get; set; }
-
-		public void AddField(MongoAppenderFileld fileld)
+        public void AddField(MongoAppenderFileld fileld)
 		{
 			_fields.Add(fileld);
 		}
@@ -58,8 +53,16 @@ namespace Log4Mongo
 
             string colName = string.IsNullOrWhiteSpace(CollectionName) ? "logs" : CollectionName;
             MongoCollection collection = db.GetCollection(colName);
+
+            if (Interlocked.CompareExchange(ref _collectionSharded, 1, 0) == 0)
+            {
+                if (!string.IsNullOrWhiteSpace(ShardKey))
+                    ShardCollection(collection);
+            }
 			return collection;
 		}
+
+        static int _dbSharded = 0, _collectionSharded = 0;
 
         const string DEFAULT_DB = "log4net";
         const string DEFAULT_CONNECTION = "mongodb://localhost/";
@@ -72,10 +75,69 @@ namespace Log4Mongo
 
             string dbname = string.IsNullOrWhiteSpace(url.DatabaseName) ? DEFAULT_DB : url.DatabaseName;
             MongoDatabase db = conn.GetDatabase(dbname);
-			return db;
+
+            if (Interlocked.CompareExchange(ref _dbSharded, 1, 0) == 0)
+            {
+                if (!string.IsNullOrWhiteSpace(ShardKey))
+                    EnableSharding(db);
+            }
+            return db;
 		}
 
-		private BsonDocument BuildBsonDocument(LoggingEvent log)
+        #region sharding option
+
+        /// <summary>
+        /// If set, will enable sharding on database and shard the collection base on this shard key
+        /// </summary>
+        /// <remarks>If cluster is not sharded and option is set, appender will throw!</remarks>
+        public string ShardKey { get; set; }
+
+        void EnableSharding(MongoDatabase db)
+        {
+            var cmd = new CommandDocument("enablesharding", db.Name);
+            try
+            {
+                var dbCfg = new MongoDatabaseSettings(db.Server, "admin");
+                var adminDb = new MongoDatabase(db.Server, dbCfg);
+                db.Server.Connect();
+                adminDb.RunCommand(cmd);
+            }
+            catch (MongoCommandException mex)
+            {
+                if (!mex.Message.ToLower().Contains("already enabled"))
+                    throw;
+                else
+                    Console.WriteLine("Sharding already enabled!");
+            }
+        }
+
+        void ShardCollection(MongoCollection col)
+        {
+            var cmd = new CommandDocument
+            {
+                { "shardCollection", col.Database.Name + '.' + col.Name },
+                { "key", new BsonDocument(this.ShardKey, 1) },
+            };
+            try
+            {
+                MongoServer server = col.Database.Server;
+                var dbCfg = new MongoDatabaseSettings(server, "admin");
+                var adminDb = new MongoDatabase(server, dbCfg);
+                server.Connect();
+                CommandResult shcr = adminDb.RunCommand(cmd);
+            }
+            catch (MongoCommandException mex)
+            {
+                if (!mex.Message.ToLower().Contains("already "))
+                    throw;
+                else
+                    Console.WriteLine("Sharding already enabled!");
+            }
+        }
+
+        #endregion
+
+        private BsonDocument BuildBsonDocument(LoggingEvent log)
 		{
 			if(_fields.Count == 0)
 			{
