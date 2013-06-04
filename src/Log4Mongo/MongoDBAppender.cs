@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Configuration;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,43 +28,6 @@ namespace Log4Mongo
 		/// </summary>
 		public string CollectionName { get; set; }
 
-		#region Deprecated
-
-        /// <summary>
-        /// Hostname of MongoDB server
-		/// Defaults to localhost
-        /// </summary>
-		[Obsolete("Use ConnectionString")]
-		public string Host { get; set; }
-
-        /// <summary>
-        /// Port of MongoDB server
-		/// Defaults to 27017
-        /// </summary>
-		[Obsolete("Use ConnectionString")]
-		public int Port { get; set; }
-
-        /// <summary>
-        /// Name of the database on MongoDB
-		/// Defaults to log4net_mongodb
-        /// </summary>
-		[Obsolete("Use ConnectionString")]
-		public string DatabaseName { get; set; }
-
-        /// <summary>
-        /// MongoDB database user name
-        /// </summary>
-		[Obsolete("Use ConnectionString")]
-        public string UserName { get; set; }
-
-        /// <summary>
-        /// MongoDB database password
-        /// </summary>
-		[Obsolete("Use ConnectionString")]
-		public string Password { get; set; }
-
-		#endregion
-
 		public void AddField(MongoAppenderFileld fileld)
 		{
 			_fields.Add(fileld);
@@ -83,20 +47,24 @@ namespace Log4Mongo
 
 		private MongoCollection GetCollection()
 		{
-			var db = GetDatabase();
-			MongoCollection collection = db.GetCollection(CollectionName ?? "logs");
+			MongoDatabase db = GetDatabase();
+
+            string colName = string.IsNullOrWhiteSpace(CollectionName) ? "logs" : CollectionName;
+            MongoCollection collection = db.GetCollection(colName);
 			return collection;
 		}
 
 		private MongoDatabase GetDatabase()
 		{
 			if(string.IsNullOrWhiteSpace(ConnectionString))
-			{
-				return BackwardCompatibility.GetDatabase(this);
-			}
+                throw new ConfigurationErrorsException("MongoDbAppender.ConnectionString is required!");
+			
 			MongoUrl url = MongoUrl.Create(ConnectionString);
-			MongoServer conn = MongoServer.Create(url);
-			MongoDatabase db = conn.GetDatabase(url.DatabaseName ?? "log4net");
+            MongoServerSettings settings = MongoServerSettings.FromUrl(url);
+            var conn = new MongoServer(settings);
+
+            string dbname = string.IsNullOrWhiteSpace(url.DatabaseName) ? "log4net" : url.DatabaseName;
+            MongoDatabase db = conn.GetDatabase(dbname);
 			return db;
 		}
 

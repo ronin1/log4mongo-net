@@ -24,7 +24,9 @@ namespace Log4Mongo.Tests
 			GlobalContext.Properties.Clear();
 			ThreadContext.Properties.Clear();
 
-			MongoServer conn = MongoServer.Create("mongodb://localhost");
+            MongoUrl url = MongoUrl.Create("mongodb://localhost");
+            MongoServerSettings settings = MongoServerSettings.FromUrl(url);
+            var conn = new MongoServer(settings);
 			MongoDatabase db = conn.GetDatabase("log4net");
 			_collection = db.GetCollection("logs");
 			_collection.RemoveAll();
