@@ -1,6 +1,6 @@
 MongoDB appender for log4net.
 =============================
-Ronin West/OverNear version by Huy Q. Nguyen
+(Ronin West/OverNear fork)
 
 The title says it all. Check [Log4Net site](http://logging.apache.org/log4net/) or [MongoDB site](http://www.mongodb.org/) if you need more info.
 
