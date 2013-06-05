@@ -1,14 +1,14 @@
-MongoDB appender for log4net
-----------------------------
+MongoDB appender for log4net. Ronin West/OverNear version by Huy Q. Nguyen
+-----------------------------=============================================
 
 The title says it all. Check [Log4Net site](http://logging.apache.org/log4net/) or [MongoDB site](http://www.mongodb.org/) if you need more info.
 
-This is the official .NET implementation for the [log4mongo](http://log4mongo.org) project
+This is the UN-official .NET implementation for the [log4mongo](http://log4mongo.org) project. Remvoing all compilation time warnings, TestDriven NUnit execution issues & added configuration sharding support!
 
 Installation
 ------------
 
-[Get it on NuGet](https://nuget.org/packages/log4mongo-net), or download sources and run build.cmd to build
+Download sources and run build.cmd to build
 
 Appender configuration sample
 -----------------------------
@@ -20,12 +20,17 @@ Appender configuration sample
 		See http://www.mongodb.org/display/DOCS/Connections for connectionstring options 
 		If no database specified, default to "log4net"
 		-->
-		<connectionString value="mongodb://localhost" />
+		<connectionString value="mongodb://localhost/log4net" />
 		<!-- 
 		Name of the collection in database
 		Optional, Defaults to "logs"
 		-->
 		<collectionName value="logs" />
+		<!--
+			_id is default (thanks to MongoDB), any field can be used as a shard key.
+			_id is ideal for smaller project w/ a small number of logger. For a larger project, loggerName is recommened as the shardkey!
+		-->
+		<shardKey value='_id' />
 		<field>
 			<name value="timestamp" />
 			<layout type="log4net.Layout.RawTimeStampLayout" />
@@ -57,7 +62,7 @@ Appender configuration sample
 License
 -------
 
-[BSD 3](https://raw.github.com/log4mongo/log4mongo-net/master/LICENSE)
+[BSD 3](https://github.com/ronin1/log4mongo-net/master/LICENSE)
 
 Credits
 -------
