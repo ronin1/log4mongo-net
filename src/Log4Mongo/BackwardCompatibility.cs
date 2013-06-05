@@ -20,21 +20,21 @@ namespace Log4Mongo
 			var toReturn = new BsonDocument {
 				{"timestamp", loggingEvent.TimeStamp}, 
 				{"level", loggingEvent.Level.ToString()}, 
-				{"thread", loggingEvent.ThreadName}, 
+				{"thread", loggingEvent.ThreadName ?? string.Empty}, 
 				{"userName", loggingEvent.UserName}, 
 				{"message", loggingEvent.RenderedMessage}, 
-				{"loggerName", loggingEvent.LoggerName}, 
-				{"domain", loggingEvent.Domain}, 
-				{"machineName", Environment.MachineName}
+				{"loggerName", loggingEvent.LoggerName ?? string.Empty}, 
+				{"domain", loggingEvent.Domain ?? string.Empty}, 
+				{"machineName", Environment.MachineName ?? string.Empty}
 			};
 
 			// location information, if available
 			if(loggingEvent.LocationInformation != null)
 			{
 				toReturn.Add("fileName", loggingEvent.LocationInformation.FileName);
-				toReturn.Add("method", loggingEvent.LocationInformation.MethodName);
+				toReturn.Add("method", loggingEvent.LocationInformation.MethodName ?? string.Empty);
 				toReturn.Add("lineNumber", loggingEvent.LocationInformation.LineNumber);
-				toReturn.Add("className", loggingEvent.LocationInformation.ClassName);
+				toReturn.Add("className", loggingEvent.LocationInformation.ClassName ?? string.Empty);
 			}
 
 			// exception information
@@ -62,7 +62,7 @@ namespace Log4Mongo
 		private static BsonDocument BuildExceptionBsonDocument(Exception ex)
 		{
 			var toReturn = new BsonDocument {
-				{"message", ex.Message}, 
+				{"message", ex.Message ?? string.Empty}, 
 				{"source", ex.Source}, 
 				{"stackTrace", ex.StackTrace}
 			};
