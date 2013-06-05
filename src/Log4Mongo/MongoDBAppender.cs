@@ -7,6 +7,7 @@ using System.Linq;
 
 using MongoDB.Bson;
 using MongoDB.Driver;
+using MongoDB.Driver.Builders;
 using log4net.Appender;
 using log4net.Core;
 
@@ -120,6 +121,8 @@ namespace Log4Mongo
             };
             try
             {
+                CreateIndex(col, ShardKey);
+                
                 MongoServer server = col.Database.Server;
                 var dbCfg = new MongoDatabaseSettings(server, "admin");
                 var adminDb = new MongoDatabase(server, dbCfg);
@@ -133,6 +136,14 @@ namespace Log4Mongo
                 else
                     Console.WriteLine("Sharding already enabled!");
             }
+        }
+
+        void CreateIndex(MongoCollection col, string field)
+        {
+            if (ShardKey == "_id") //create proper index first!
+                return;
+
+            col.EnsureIndex(IndexKeys.Ascending(field), IndexOptions.SetBackground(true));
         }
 
         #endregion

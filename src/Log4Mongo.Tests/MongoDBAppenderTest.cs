@@ -42,7 +42,7 @@ namespace Log4Mongo.Tests
 <log4net>
 	<appender name='MongoDBAppender' type='Log4Mongo.MongoDBAppender, Log4Mongo'>
 		<connectionString value='mongodb://localhost' />
-        <shardKey value='_id' />
+        <shardKey value='timestamp' />
 		<field>
 			<name value='timestamp' />
 			<layout type='log4net.Layout.RawTimeStampLayout' />
@@ -196,7 +196,7 @@ namespace Log4Mongo.Tests
 <log4net>
 	<appender name='MongoDBAppender' type='Log4Mongo.MongoDBAppender, Log4Mongo'>
 		<connectionString value='mongodb://localhost' />
-        <shardKey value='_id' />
+        <shardKey value='timestamp' />
 	</appender>
 	<root>
 		<level value='ALL' />
@@ -253,7 +253,7 @@ namespace Log4Mongo.Tests
 	</appender>
 	<appender name='MongoDBAppender' type='Log4Mongo.MongoDBAppender, Log4Mongo'>
 		<connectionString value='mongodb://localhost' />
-        <shardKey value='_id' />
+        <shardKey value='timestamp' />
 	</appender>
 	<root>
 		<level value='ALL' />
