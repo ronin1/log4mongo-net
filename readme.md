@@ -1,5 +1,6 @@
-MongoDB appender for log4net. Ronin West/OverNear version by Huy Q. Nguyen
------------------------------=============================================
+MongoDB appender for log4net. 
+Ronin West/OverNear version by Huy Q. Nguyen
+=============================================
 
 The title says it all. Check [Log4Net site](http://logging.apache.org/log4net/) or [MongoDB site](http://www.mongodb.org/) if you need more info.
 
@@ -63,10 +64,3 @@ License
 -------
 
 [BSD 3](https://github.com/ronin1/log4mongo-net/master/LICENSE)
-
-Credits
--------
-
-Thanks to [JetBrains](http://www.jetbrains.com/) for providing us licenses for it's excellent tool [ReSharper](http://www.jetbrains.com/resharper/)
-
-![ReSharper](http://www.jetbrains.com/img/logos/logo_resharper_small.gif)
