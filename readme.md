@@ -29,7 +29,7 @@ Appender configuration sample
 		<collectionName value="logs" />
 		<!--
 			_id is default (thanks to MongoDB), any field can be used as a shard key.
-			_id is ideal for smaller project w/ a small number of logger. For a larger project, loggerName is recommened as the shardkey!
+			_id is ideal for smaller project w/ a small number of logger. For a larger project, logger is recommened as the shardkey!
 		-->
 		<shardKey value='_id' />
 		<field>
