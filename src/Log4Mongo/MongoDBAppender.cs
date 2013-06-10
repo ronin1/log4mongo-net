@@ -44,7 +44,7 @@ namespace Log4Mongo
 
 		protected override void Append(LoggingEvent loggingEvent)
 		{
-            if (loggingEvent == null || (this.Threshold!=null && loggingEvent.Level < this.Threshold)) //ignore this log entry...
+            if (loggingEvent == null) //ignore this log entry...
                 return;
 
             MongoCollection collection = MongoDbRef.Instance.GetCollection(this);
@@ -56,9 +56,7 @@ namespace Log4Mongo
             if (loggingEvents == null || loggingEvents.Length < 1)
                 return;
 
-            loggingEvents = (from e in loggingEvents
-                             where e != null && (this.Threshold == null || (this.Threshold!=null && e.Level >= this.Threshold))
-                             select e).ToArray();
+            loggingEvents = (from e in loggingEvents where e != null select e).ToArray();
             if (loggingEvents == null || loggingEvents.Length < 1)
                 return;
 
