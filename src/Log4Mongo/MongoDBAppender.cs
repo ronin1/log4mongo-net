@@ -31,6 +31,12 @@ namespace Log4Mongo
 		/// </summary>
 		public string CollectionName { get; set; }
 
+        /// <summary>
+        /// If set, will enable sharding on database and shard the collection base on this shard key
+        /// </summary>
+        /// <remarks>If cluster is not sharded and option is set, appender will throw!</remarks>
+        public string ShardKey { get; set; }
+
         public void AddField(MongoAppenderFileld fileld)
 		{
 			_fields.Add(fileld);
@@ -38,115 +44,27 @@ namespace Log4Mongo
 
 		protected override void Append(LoggingEvent loggingEvent)
 		{
-			var collection = GetCollection();
-			collection.Insert(BuildBsonDocument(loggingEvent));
+            if (loggingEvent == null || (this.Threshold!=null && loggingEvent.Level < this.Threshold)) //ignore this log entry...
+                return;
+
+            MongoCollection collection = MongoDbRef.Instance.GetCollection(this);
+			collection.Insert(BuildBsonDocument(loggingEvent), WriteConcern.Unacknowledged);
 		}
 
 		protected override void Append(LoggingEvent[] loggingEvents)
 		{
-			var collection = GetCollection();
-			collection.InsertBatch(loggingEvents.Select(BuildBsonDocument));
-		}
-
-		private MongoCollection GetCollection()
-		{
-			MongoDatabase db = GetDatabase();
-
-            string colName = string.IsNullOrWhiteSpace(CollectionName) ? "logs" : CollectionName;
-            MongoCollection collection = db.GetCollection(colName);
-
-            if (Interlocked.CompareExchange(ref _collectionSharded, 1, 0) == 0)
-            {
-                if (!string.IsNullOrWhiteSpace(ShardKey))
-                    ShardCollection(collection);
-            }
-			return collection;
-		}
-
-        static int _dbSharded = 0, _collectionSharded = 0;
-
-        const string DEFAULT_DB = "log4net";
-        const string DEFAULT_CONNECTION = "mongodb://localhost/";
-		private MongoDatabase GetDatabase()
-		{
-            Uri u = new Uri(string.IsNullOrWhiteSpace(ConnectionString) ? DEFAULT_CONNECTION + DEFAULT_DB : ConnectionString);
-			MongoUrl url = MongoUrl.Create(u.ToString());
-            MongoServerSettings settings = MongoServerSettings.FromUrl(url);
-            var conn = new MongoServer(settings);
-
-            string dbname = string.IsNullOrWhiteSpace(url.DatabaseName) ? DEFAULT_DB : url.DatabaseName;
-            MongoDatabase db = conn.GetDatabase(dbname);
-
-            if (Interlocked.CompareExchange(ref _dbSharded, 1, 0) == 0)
-            {
-                if (!string.IsNullOrWhiteSpace(ShardKey))
-                    EnableSharding(db);
-            }
-            return db;
-		}
-
-        #region sharding option
-
-        /// <summary>
-        /// If set, will enable sharding on database and shard the collection base on this shard key
-        /// </summary>
-        /// <remarks>If cluster is not sharded and option is set, appender will throw!</remarks>
-        public string ShardKey { get; set; }
-
-        void EnableSharding(MongoDatabase db)
-        {
-            var cmd = new CommandDocument("enablesharding", db.Name);
-            try
-            {
-                var dbCfg = new MongoDatabaseSettings(db.Server, "admin");
-                var adminDb = new MongoDatabase(db.Server, dbCfg);
-                db.Server.Connect();
-                adminDb.RunCommand(cmd);
-            }
-            catch (MongoCommandException mex)
-            {
-                if (!mex.Message.ToLower().Contains("already enabled"))
-                    throw;
-                else
-                    Console.WriteLine("Sharding already enabled!");
-            }
-        }
-
-        void ShardCollection(MongoCollection col)
-        {
-            var cmd = new CommandDocument
-            {
-                { "shardCollection", col.Database.Name + '.' + col.Name },
-                { "key", new BsonDocument(this.ShardKey, 1) },
-            };
-            try
-            {
-                CreateIndex(col, ShardKey);
-                
-                MongoServer server = col.Database.Server;
-                var dbCfg = new MongoDatabaseSettings(server, "admin");
-                var adminDb = new MongoDatabase(server, dbCfg);
-                server.Connect();
-                CommandResult shcr = adminDb.RunCommand(cmd);
-            }
-            catch (MongoCommandException mex)
-            {
-                if (!mex.Message.ToLower().Contains("already "))
-                    throw;
-                else
-                    Console.WriteLine("Sharding already enabled!");
-            }
-        }
-
-        void CreateIndex(MongoCollection col, string field)
-        {
-            if (ShardKey == "_id") //create proper index first!
+            if (loggingEvents == null || loggingEvents.Length < 1)
                 return;
 
-            col.EnsureIndex(IndexKeys.Ascending(field), IndexOptions.SetBackground(true));
-        }
+            loggingEvents = (from e in loggingEvents
+                             where e != null && (this.Threshold == null || (this.Threshold!=null && e.Level >= this.Threshold))
+                             select e).ToArray();
+            if (loggingEvents == null || loggingEvents.Length < 1)
+                return;
 
-        #endregion
+            MongoCollection collection = MongoDbRef.Instance.GetCollection(this);
+            collection.InsertBatch(loggingEvents.Select(BuildBsonDocument), WriteConcern.Unacknowledged);
+		}
 
         private BsonDocument BuildBsonDocument(LoggingEvent log)
 		{
