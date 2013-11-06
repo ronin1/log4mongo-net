@@ -48,7 +48,8 @@ namespace Log4Mongo
                 return;
 
             MongoCollection collection = MongoDbRef.Instance.GetCollection(this);
-			collection.Insert(BuildBsonDocument(loggingEvent), WriteConcern.Unacknowledged);
+			BsonDocument doc = BuildBsonDocument(loggingEvent);
+			collection.Insert(doc, WriteConcern.Unacknowledged);
 		}
 
 		protected override void Append(LoggingEvent[] loggingEvents)
@@ -61,7 +62,8 @@ namespace Log4Mongo
                 return;
 
             MongoCollection collection = MongoDbRef.Instance.GetCollection(this);
-            collection.InsertBatch(loggingEvents.Select(BuildBsonDocument), WriteConcern.Unacknowledged);
+			BsonDocument[] docs = loggingEvents.Select(BuildBsonDocument).ToArray();
+            collection.InsertBatch(docs, WriteConcern.Unacknowledged);
 		}
 
         private BsonDocument BuildBsonDocument(LoggingEvent log)

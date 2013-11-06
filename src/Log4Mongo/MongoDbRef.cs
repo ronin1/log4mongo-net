@@ -92,8 +92,8 @@ namespace Log4Mongo
             var cmd = new CommandDocument("enablesharding", db.Name);
             try
             {
-                var dbCfg = new MongoDatabaseSettings(db.Server, "admin");
-                var adminDb = new MongoDatabase(db.Server, dbCfg);
+                var dbCfg = new MongoDatabaseSettings();
+                var adminDb = new MongoDatabase(db.Server, "admin", dbCfg);
                 db.Server.Connect();
                 adminDb.RunCommand(cmd);
             }
@@ -118,8 +118,8 @@ namespace Log4Mongo
                 CreateIndex(col, appender.ShardKey);
 
                 MongoServer server = col.Database.Server;
-                var dbCfg = new MongoDatabaseSettings(server, "admin");
-                var adminDb = new MongoDatabase(server, dbCfg);
+                var dbCfg = new MongoDatabaseSettings();
+                var adminDb = new MongoDatabase(server, "admin", dbCfg);
                 server.Connect();
                 CommandResult shcr = adminDb.RunCommand(cmd);
             }

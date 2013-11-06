@@ -33,7 +33,9 @@ namespace Log4Mongo.Tests
 		{
 			GlobalContext.Properties.Clear();
 			ThreadContext.Properties.Clear();
-            Collection.RemoveAll();
+
+			Collection.Drop();
+			Collection.Database.Drop();
 		}
 
 		private ILog GetConfiguredLog()
@@ -281,7 +283,7 @@ namespace Log4Mongo.Tests
 		{
 			var now = DateTime.UtcNow;
 			var oneSecondAgo = now.AddSeconds(-1);
-			doc.GetElement("timestamp").Value.AsDateTime.Should().Be.IncludedIn(oneSecondAgo, now);
+			doc.GetElement("timestamp").Value.ToUniversalTime().Should().Be.IncludedIn(oneSecondAgo, now);
 		}
 	}
 }
